@@ -5,6 +5,8 @@ pub contract FlovatarNFTStakingRewards {
     pub event RewardItemTemplateCreated(rewardItemTemplateID: UInt32, name: String?, description: String?, image: String?)
     pub event RewardItemAdded(nftID: UInt64, rewardItemID: UInt32, rewardItemTemplateID: UInt32)
 
+    pub let RevealerStoragePath: StoragePath
+
     pub var totalSupply: UInt32
     pub var burned: UInt32
     pub var rewardPerSecond: UFix64
@@ -47,24 +49,83 @@ pub contract FlovatarNFTStakingRewards {
             self.timestamp = getCurrentBlock().timestamp
             self.revealed = false
         }
+
+        pub fun reveal() { //TODO: test if this can be called by anyone or only the revealer
+            if(!self.revealed) {
+                self.revealed = true
+            }
+        }
     }
 
     /*
         -add reward to NFT () // Random - by admin
-        -burn reward // by admin
-        -reveal // by user
 
         small stuff: admin paths & events
 
      */
 
-    //TODO: Problem, how to verify the address is the owner of the NFT
-    // Check revealer address and check staked collection and check the IDs
     pub resource Revealer {
+
+        pub fun revealRewardItem(nftID: UInt64, rewardItemID: UInt32) {
+            pre {
+                self.owner != nil: "Can't reveal rewardItem: self.owner is nil"
+            }
+
+            // Verify NFT holder
+            let revealerAddress = self.owner!.address
+
+            // Check if NFT holder has the NFT in the staking collection
+            let collectionRef = getAccount(revealerAddress).getCapability(FlovatarNFTStaking.CollectionPublicPath)
+                                                            .borrow<&FlovatarNFTStaking.Collection{FlovatarNFTStaking.NFTStakingCollectionPublic}>()
+
+            if(collectionRef != nil) {
+                let IDs = collectionRef!.getIDs()
+                assert(IDs.contains(nftID), message: "This address does not hold the NFT")
+            }
+
+            // Reveal NFT
+            if(FlovatarNFTStakingRewards.rewards[nftID] != nil) {
+                let rewardItems = FlovatarNFTStakingRewards.rewards[nftID]!
+                if(rewardItems[rewardItemID] != nil) {
+                    let rewardItem = rewardItems[rewardItemID]!
+                    rewardItem.reveal()
+                }
+            }
+
+        }
 
     }
 
     pub resource Admin {
+
+        pub fun giveReward(toID: UInt64) {
+            if(FlovatarNFTStaking.getTimeStakedReward(id: toID) != nil) {
+                let timeStaked = getCurrentBlock().timestamp - FlovatarNFTStaking.getTimeStakedReward(id: toID)!
+                if(timeStaked >= FlovatarNFTStakingRewards.rewardPerSecond) {
+                    
+                }
+            }
+            
+            /*
+            How do we know how many rewards an NFT should get?
+            - We check the staking timer
+
+            But what do we do when it resets?
+            - We could store a "last Timer Checker" to see if the timer has been reset
+
+            How do we know how many rewards should be given?
+            - Based on the last timer checker we could also store how many rewards have been given 
+            and reset the number of rewards if the last timer checker doesn't match
+            */
+        }
+
+        pub fun burnReward(nftID: UInt64, rewardItemID: UInt32) {
+            FlovatarNFTStakingRewards.removeReward(nftID: nftID, rewardItemID: rewardItemID)
+        }
+
+        pub fun transferReward(fromID: UInt64, toID: UInt64, rewardItemID: UInt32) {
+            FlovatarNFTStakingRewards.moveReward(fromID: fromID, toID: toID, rewardItemID: rewardItemID)
+        }
 
         pub fun changeRewardPerSecond(seconds: UFix64) {
             FlovatarNFTStakingRewards.rewardPerSecond = seconds
@@ -160,5 +221,8 @@ pub contract FlovatarNFTStakingRewards {
             5: RewardItemTemplate(rewardItemTemplateID: 5, name: nil, description: nil, image: nil)
         }
         self.rewards = {}
+
+        self.RevealerStoragePath = /storage/FlovatarNFTStakingRewardsRevealer
+
     }
 }
