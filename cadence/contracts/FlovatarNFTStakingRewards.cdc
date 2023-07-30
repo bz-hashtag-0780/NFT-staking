@@ -99,24 +99,39 @@ pub contract FlovatarNFTStakingRewards {
     pub resource Admin {
 
         pub fun giveReward(toID: UInt64) {
-            if(FlovatarNFTStaking.getTimeStakedReward(id: toID) != nil) {
-                let timeStaked = getCurrentBlock().timestamp - FlovatarNFTStaking.getTimeStakedReward(id: toID)!
+            // check if NFT is staking
+            if(FlovatarNFTStaking.getStakingStartDate(id: toID) != nil) {
+                let timeStaked = getCurrentBlock().timestamp - FlovatarNFTStaking.getStakingStartDate(id: toID)!
+
+                // check if eligible to receive reward
                 if(timeStaked >= FlovatarNFTStakingRewards.rewardPerSecond) {
-                    
+                    // give random reward
+                    let rewardID = UInt32(self.randomReward())
+                    FlovatarNFTStakingRewards.addReward(nftID: toID, rewardItemTemplateID: rewardID)
+
+                    // update AdjustedStakingDate to prevent duplicate rewards
+                    FlovatarNFTStaking.updateAdjustedStakingDate(id: toID, rewardPerSecond: FlovatarNFTStakingRewards.rewardPerSecond)
+
                 }
             }
             
-            /*
-            How do we know how many rewards an NFT should get?
-            - We check the staking timer
+        }
 
-            But what do we do when it resets?
-            - We could store a "last Timer Checker" to see if the timer has been reset
-
-            How do we know how many rewards should be given?
-            - Based on the last timer checker we could also store how many rewards have been given 
-            and reset the number of rewards if the last timer checker doesn't match
-            */
+        access(self) fun randomReward(): Int {
+            // Generate a random number between 0 and 100_000_000
+            let randomNum = Int(unsafeRandom() % 100_000_000)
+            
+            let threshold1 = 69_000_000 // for 69%
+            let threshold2 = 87_000_000 // for 18%, cumulative 87%
+            let threshold3 = 95_000_000 // for 8%, cumulative 95%
+            let threshold4 = 99_000_000 // for 4%, cumulative 99%
+            
+            // Return reward based on generated random number
+            if randomNum < threshold1 { return 1 }
+            else if randomNum < threshold2 { return 2 }
+            else if randomNum < threshold3 { return 3 }
+            else if randomNum < threshold4 { return 4 }
+            else { return 5 } // for remaining 1%
         }
 
         pub fun burnReward(nftID: UInt64, rewardItemID: UInt32) {
@@ -218,7 +233,7 @@ pub contract FlovatarNFTStakingRewards {
             2: RewardItemTemplate(rewardItemTemplateID: 2, name: nil, description: nil, image: nil),
             3: RewardItemTemplate(rewardItemTemplateID: 3, name: nil, description: nil, image: nil),
             4: RewardItemTemplate(rewardItemTemplateID: 4, name: nil, description: nil, image: nil),
-            5: RewardItemTemplate(rewardItemTemplateID: 5, name: nil, description: nil, image: nil)
+            5: RewardItemTemplate(rewardItemTemplateID: 5, name: nil, description: nil, image: nil) // best reward
         }
         self.rewards = {}
 

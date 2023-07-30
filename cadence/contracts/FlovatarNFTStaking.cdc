@@ -11,8 +11,8 @@ pub contract FlovatarNFTStaking {
     pub let CollectionPublicPath: PublicPath
 
     access(self) var stakers: [Address]
-    access(self) var stakingStartDate: {UInt64: UFix64}
-    access(self) var adjustedStakingDate: {UInt64: UFix64}
+    access(self) var stakingStartDates: {UInt64: UFix64}
+    access(self) var adjustedStakingDates: {UInt64: UFix64}
 
     pub resource interface NFTStakingCollectionPublic {
         pub fun getIDs(): [UInt64]
@@ -48,8 +48,8 @@ pub contract FlovatarNFTStaking {
             FlovatarNFTStaking.addStaker(address: self.owner?.address!)
 
             // add timer
-            FlovatarNFTStaking.stakingStartDate[id] = getCurrentBlock().timestamp
-            FlovatarNFTStaking.adjustedStakingDate[id] = getCurrentBlock().timestamp
+            FlovatarNFTStaking.stakingStartDates[id] = getCurrentBlock().timestamp
+            FlovatarNFTStaking.adjustedStakingDates[id] = getCurrentBlock().timestamp
 
             emit Stake(id: id, to: self.owner?.address)
         }
@@ -58,10 +58,10 @@ pub contract FlovatarNFTStaking {
             let token <- self.stakedNFTs.remove(key: id) ?? panic("missing NFT")
 
             // remove timer
-            FlovatarNFTStaking.stakingStartDate[id] = nil
-            FlovatarNFTStaking.stakingStartDate.remove(key: id)
-            FlovatarNFTStaking.adjustedStakingDate[id] = nil
-            FlovatarNFTStaking.adjustedStakingDate.remove(key: id)
+            FlovatarNFTStaking.stakingStartDates[id] = nil
+            FlovatarNFTStaking.stakingStartDates.remove(key: id)
+            FlovatarNFTStaking.adjustedStakingDates[id] = nil
+            FlovatarNFTStaking.adjustedStakingDates.remove(key: id)
 
             emit Unstake(id: token.id, from: self.owner?.address)
 
@@ -98,31 +98,31 @@ pub contract FlovatarNFTStaking {
     }
 
     access(account) fun updateAdjustedStakingDate(id: UInt64, rewardPerSecond: UFix64) {
-        if(self.adjustedStakingDate[id] != nil) {
-            self.adjustedStakingDate[id] = self.adjustedStakingDate[id]! + rewardPerSecond
+        if(self.adjustedStakingDates[id] != nil) {
+            self.adjustedStakingDates[id] = self.adjustedStakingDates[id]! + rewardPerSecond
         }
     }
 
     pub fun getStakingStartDate(id: UInt64): UFix64? {
-        return self.stakingStartDate[id]
+        return self.stakingStartDates[id]
     }
 
     pub fun getAllStakingStartDates(): {UInt64: UFix64} {
-        return self.totalTimeStaked
+        return self.stakingStartDates
     }
 
     pub fun getAdjustedStakingDate(id: UInt64): UFix64? {
-        return self.adjustedStakingDate[id]
+        return self.adjustedStakingDates[id]
     }
 
     pub fun getAllAdjustedStakingDates(): {UInt64: UFix64} {
-        return self.adjustedStakingDate
+        return self.adjustedStakingDates
     }
 
     init() {
         self.stakers = []
-        self.stakingStartDate = {}
-        self.adjustedStakingDate = {}
+        self.stakingStartDates = {}
+        self.adjustedStakingDates = {}
         
         self.CollectionStoragePath = /storage/FlovatarNFTStakingCollection
         self.CollectionPublicPath = /public/FlovatarNFTStakingCollection
