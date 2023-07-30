@@ -2,10 +2,15 @@ import FlovatarNFTStaking from "./FlovatarNFTStaking.cdc"
 
 pub contract FlovatarNFTStakingRewards {
 
+    pub event ContractInitialized()
     pub event RewardItemTemplateCreated(rewardItemTemplateID: UInt32, name: String?, description: String?, image: String?)
     pub event RewardItemAdded(nftID: UInt64, rewardItemID: UInt32, rewardItemTemplateID: UInt32)
+    pub event RewardItemRemoved(nftID: UInt64, rewardItemID: UInt32, rewardItemTemplateID: UInt32)
+    pub event RewardItemMoved(fromID: UInt64, toID: UInt64, rewardItemID: UInt32, rewardItemTemplateID: UInt32)
 
     pub let RevealerStoragePath: StoragePath
+    pub let AdminStoragePath: StoragePath
+    pub let AdminPrivatePath: PrivatePath
 
     pub var totalSupply: UInt32
     pub var burned: UInt32
@@ -56,13 +61,6 @@ pub contract FlovatarNFTStakingRewards {
             }
         }
     }
-
-    /*
-        -add reward to NFT () // Random - by admin
-
-        small stuff: admin paths & events
-
-     */
 
     pub resource Revealer {
 
@@ -176,8 +174,13 @@ pub contract FlovatarNFTStakingRewards {
         if(FlovatarNFTStakingRewards.rewards[nftID] != nil) {
             let rewardItems = FlovatarNFTStakingRewards.rewards[nftID]!
             if(rewardItems[rewardItemID] != nil) {
+                let rewardItem = rewardItems[rewardItemID]!
+                let rewardItemTemplateID = rewardItem.rewardItemTemplateID
+                
                 rewardItems.remove(key: rewardItemID)
+                rewardItems[rewardItemID] = nil
                 FlovatarNFTStakingRewards.burned = FlovatarNFTStakingRewards.burned + 1
+                emit RewardItemRemoved(nftID: nftID, rewardItemID: rewardItemID, rewardItemTemplateID: rewardItemTemplateID)
             }
         }
     }
@@ -190,9 +193,11 @@ pub contract FlovatarNFTStakingRewards {
 
             if(rewardItems[rewardItemID] != nil) {
                 let rewardItem = rewardItems[rewardItemID]!
+                let rewardItemTemplateID = rewardItem.rewardItemTemplateID
 
                 // Remove the reward from the NFT (fromID)
                 rewardItems.remove(key: rewardItemID)
+                rewardItems[rewardItemID] = nil
 
                 // Add the reward to the other NFT (toID)
                 if(FlovatarNFTStakingRewards.rewards[toID] != nil) { //if NFT has rewards
@@ -201,6 +206,8 @@ pub contract FlovatarNFTStakingRewards {
                 } else { //if NFT does not have rewards
                     FlovatarNFTStakingRewards.rewards[toID] = {rewardItem.id: rewardItem}
                 }
+
+                emit RewardItemMoved(fromID: fromID, toID: toID, rewardItemID: rewardItemID, rewardItemTemplateID: rewardItemTemplateID)
 
             }
 
@@ -238,6 +245,12 @@ pub contract FlovatarNFTStakingRewards {
         self.rewards = {}
 
         self.RevealerStoragePath = /storage/FlovatarNFTStakingRewardsRevealer
+        self.AdminStoragePath = /storage/FlovatarNFTStakingRewardsAdmin
+        self.AdminPrivatePath = /private/FlovatarNFTStakingRewardsAdminUpgrade
 
+        // Put Admin in storage
+        self.account.save(<-create Admin(), to: self.AdminStoragePath)
+
+        emit ContractInitialized()
     }
 }

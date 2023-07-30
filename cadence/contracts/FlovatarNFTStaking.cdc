@@ -4,6 +4,7 @@ import Flovatar from "./Flovatar.cdc"
 
 pub contract FlovatarNFTStaking {
 
+    pub event ContractInitialized()
     pub event Stake(id: UInt64, to: Address?)
     pub event Unstake(id: UInt64, from: Address?)
 
@@ -126,6 +127,8 @@ pub contract FlovatarNFTStaking {
         
         self.CollectionStoragePath = /storage/FlovatarNFTStakingCollection
         self.CollectionPublicPath = /public/FlovatarNFTStakingCollection
+
+        emit ContractInitialized()
     }
 
 }
