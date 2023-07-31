@@ -121,25 +121,28 @@ pub contract FlovatarRaids {
                                 // award reward to winner
                                 FlovatarNFTStakingRewards.moveReward(fromID: defenderNftID!, toID: nftID, rewardItemID: defenderRewardID!)
                                 // award point to attacker
-                                
+                                FlovatarRaids.awardPoint(nftID: nftID)
                             } else if (raidResult == 2) {
                                 // defender wins
                                 winner = defenderNftID
                                 // award reward to winner
                                 FlovatarNFTStakingRewards.moveReward(fromID: nftID, toID: defenderNftID!, rewardItemID: attackerRewardID!)
                                 // award point to defender
+                                FlovatarRaids.awardPoint(nftID: defenderNftID!)
                             }
+                            // award point and exp to attacker for raiding
+                            FlovatarRaids.awardPoint(nftID: nftID)
+                            FlovatarRaids.awardExp(nftID: nftID)
                             
                             // create record
                             FlovatarRaids.raidCount = FlovatarRaids.raidCount + 1
                             FlovatarRaids.raidRecords[FlovatarRaids.raidCount] = RaidRecord(id: FlovatarRaids.raidCount, attacker: nftID, defender: defenderNftID!, winner: winner)
 
-                            // award points and exp
-                            // if()
+                            // Add cooldown max 9 times a day per nft
 
-                            // cooldown
+                            // cooldown TODO
 
-                            // start lock timer
+                            // start lock timer TODO
                             //FlovatarRaids.playerLockStartDates[attacker] = getCurrentBlock().timestamp
 
                         }
@@ -181,12 +184,22 @@ pub contract FlovatarRaids {
     }
 
     access(contract) fun awardPoint(nftID: UInt64) {
-        let points = FlovatarRaids.points[FlovatarRaids.currentSeason]
-        if()
-        if(FlovatarRaids.points[nftID] != nil) {
-            FlovatarRaids.points[nftID] = FlovatarRaids.points[nftID] + 1
+        var points = FlovatarRaids.points[FlovatarRaids.currentSeason]
+        if(points != nil) {
+            var currentSeasonPoints = points!
+            if(currentSeasonPoints[nftID] != nil) {
+            currentSeasonPoints[nftID] = currentSeasonPoints[nftID]! + 1
         } else {
-            FlovatarRaids.points[nftID] = 1
+            currentSeasonPoints[nftID] = 1
+        }
+        }
+    }
+
+    access(contract) fun awardExp(nftID: UInt64) {
+        if(FlovatarRaids.exp[nftID] != nil) {
+            FlovatarRaids.exp[nftID] = FlovatarRaids.exp[nftID]! + 1
+        } else {
+            FlovatarRaids.exp[nftID] = 1
         }
     }
 
