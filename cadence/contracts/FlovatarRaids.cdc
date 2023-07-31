@@ -15,6 +15,7 @@ pub contract FlovatarRaids {
     access(self) var playerLockStartDates: {UInt64: UFix64}
     access(self) var points: {UInt64: UInt32}
     access(self) var exp: {UInt64: UInt32}
+    access(self) var cooldowns: {Address: UFix64}
 
     pub struct RaidRecord {
         pub let id: UInt32
@@ -81,6 +82,31 @@ pub contract FlovatarRaids {
 
                     if(rewardItemID != nil) {
                         // find a random defender
+                        var defenderFound = false
+                        var randomDefender: Address? = nil
+                        var defenderReward: UInt32? = nil
+
+                        while !defenderFound {
+                            randomDefender = FlovatarRaids.pickRandomPlayer()
+                            if let defenderNftID = FlovatarRaids.playerOptIns[randomDefender!] {
+                                // make sure defender is not attacker
+                                if(randomDefender! != attacker) {
+                                    // check if defender has valid matching reward
+                                    if(hasRewardOne == rewardItemID) {
+                                        defenderReward = FlovatarNFTStakingRewards.hasRewardItemOne(nftID: defenderNftID)
+                                        defenderFound = true
+                                    } else if (hasRewardTwo == rewardItemID) {
+                                        defenderReward = FlovatarNFTStakingRewards.hasRewardItemTwo(nftID: defenderNftID)
+                                        defenderFound = true
+                                    }
+                                }
+                            }
+                        }
+
+                        
+
+
+                        // cooldown
                     }
                     
                     
@@ -88,9 +114,7 @@ pub contract FlovatarRaids {
             }
 
 
-            // check if defender has valid rewards
-
-            // pick a reward from the defender
+            
 
             // run the raid algo
 
@@ -145,6 +169,15 @@ pub contract FlovatarRaids {
         else { return 1 }
     }
 
+    pub fun pickRandomPlayer(): Address {
+        let players = FlovatarRaids.playerOptIns.keys
+        assert(players.length > 0, message: "No players available")
+
+        let randomIndex = unsafeRandom() % UInt64(players.length)
+
+        return players[Int(randomIndex)]
+    }
+
     pub fun createNewPlayer(): @Player {
         return <-create Player()
     }
@@ -156,6 +189,7 @@ pub contract FlovatarRaids {
         self.playerLockStartDates = {}
         self.points = {}
         self.exp = {}
+        self.cooldowns = {}
 
         self.GameMasterStoragePath = /storage/FlovatarRaidsGameMaster
 
