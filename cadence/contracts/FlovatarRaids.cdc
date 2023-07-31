@@ -46,7 +46,7 @@ pub contract FlovatarRaids {
             }
             
             // check if player has valid rewards
-            if(FlovatarNFTStakingRewards.hasRewardItemOne(nftID: nftID) || FlovatarNFTStakingRewards.hasRewardItemTwo(nftID: nftID)) {
+            if(FlovatarNFTStakingRewards.hasRewardItemOne(nftID: nftID) != nil || FlovatarNFTStakingRewards.hasRewardItemTwo(nftID: nftID) != nil) {
                 FlovatarRaids.playerOptIns[playerAddress] = nftID
 
                 emit PlayerOptIn(player: playerAddress, nftID: nftID)
@@ -63,40 +63,30 @@ pub contract FlovatarRaids {
             // check if attacker is valid
             if(FlovatarRaids.playerOptIns.keys.contains(attacker)) {
                 // fetch attacker's nft
-                let nftID = FlovatarRaids.playerOptIns[attacker]
-                if(nftID != nil) {
-                    // fetch reward
-                    var rewardItem: FlovatarNFTStakingRewards.RewardItem? = nil
+                if let nftID = FlovatarRaids.playerOptIns[attacker] {
+                    // pick a reward from the attackers
+                    var rewardItemID: UInt32? = nil
 
-                    let rewards = FlovatarNFTStakingRewards.getRewards(nftID: nftID!)
-                    // check reward one
-                    var hasRewardOne = FlovatarNFTStakingRewards.hasRewardItemOne(nftID: nftID!)
-                    // check reward two
-                    var hasRewardTwo = FlovatarNFTStakingRewards.hasRewardItemTwo(nftID: nftID!)
-                    if(hasRewardOne && hasRewardTwo) {
+                    let rewards = FlovatarNFTStakingRewards.getRewards(nftID: nftID)
+                    
+                    // check rewards
+                    let hasRewardOne = FlovatarNFTStakingRewards.hasRewardItemOne(nftID: nftID)
+                    let hasRewardTwo = FlovatarNFTStakingRewards.hasRewardItemTwo(nftID: nftID)
+
+                    // pick reward
+                    if hasRewardOne != nil || hasRewardTwo != nil {
                         let randomReward = FlovatarRaids.chooseRewardOneOrTwo()
-                        if(randomReward == 2) {
-
-                        } else {
-
-                        }
-
-                    } else if hasRewardOne {
-                        
-                    } else if hasRewardTwo {
-
-                    } else {
-                        //attacker can't raid
+                        rewardItemID = (randomReward == 2 && hasRewardTwo != nil) ? hasRewardTwo : hasRewardOne
                     }
+
+                    if(rewardItemID != nil) {
+                        // find a random defender
+                    }
+                    
                     
                 }
             }
 
-            
-
-            // pick a reward from the attackers
-            
-            // find a random defender
 
             // check if defender has valid rewards
 
@@ -111,7 +101,7 @@ pub contract FlovatarRaids {
             // award points and exp
 
             // start lock timer
-            FlovatarRaids.playerLockStartDates[attacker] = getCurrentBlock().timestamp
+            //FlovatarRaids.playerLockStartDates[attacker] = getCurrentBlock().timestamp
         }
 
         pub fun targetedRaid(attacker: UInt64, defender: UInt64) {

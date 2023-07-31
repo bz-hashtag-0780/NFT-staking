@@ -235,30 +235,30 @@ pub contract FlovatarNFTStakingRewards {
         return self.rewards
     }
 
-    pub fun hasRewardItemOne(nftID: UInt64): Bool {
+    pub fun hasRewardItemOne(nftID: UInt64): UInt32? {
         let rewards = self.getRewards(nftID: nftID)
 
         if rewards != nil {
             for item in rewards!.values {
                 if item.rewardItemTemplateID == 1 {
-                    return true
+                    return item.id
                 }
             }
         }
-        return false
+        return nil
     }
 
-    pub fun hasRewardItemTwo(nftID: UInt64): Bool {
+    pub fun hasRewardItemTwo(nftID: UInt64): UInt32? {
         let rewards = self.getRewards(nftID: nftID)
 
         if rewards != nil {
             for item in rewards!.values {
                 if item.rewardItemTemplateID == 2 {
-                    return true
+                    return item.id
                 }
             }
         }
-        return false
+        return nil
     }
 
     init() {
