@@ -177,8 +177,8 @@ pub contract FlovatarNFTStakingRewards {
                 let rewardItem = rewardItems[rewardItemID]!
                 let rewardItemTemplateID = rewardItem.rewardItemTemplateID
                 
-                rewardItems.remove(key: rewardItemID)
                 rewardItems[rewardItemID] = nil
+                rewardItems.remove(key: rewardItemID)
                 FlovatarNFTStakingRewards.burned = FlovatarNFTStakingRewards.burned + 1
                 emit RewardItemRemoved(nftID: nftID, rewardItemID: rewardItemID, rewardItemTemplateID: rewardItemTemplateID)
             }
@@ -196,8 +196,8 @@ pub contract FlovatarNFTStakingRewards {
                 let rewardItemTemplateID = rewardItem.rewardItemTemplateID
 
                 // Remove the reward from the NFT (fromID)
-                rewardItems.remove(key: rewardItemID)
                 rewardItems[rewardItemID] = nil
+                rewardItems.remove(key: rewardItemID)
 
                 // Add the reward to the other NFT (toID)
                 if(FlovatarNFTStakingRewards.rewards[toID] != nil) { //if NFT has rewards
@@ -215,6 +215,10 @@ pub contract FlovatarNFTStakingRewards {
 
     }
 
+    pub fun createNewRevealer(): @Revealer {
+        return <-create Revealer()
+    }
+
     pub fun getRewardItemTemplate(id: UInt32): RewardItemTemplate? {
         return FlovatarNFTStakingRewards.rewardItemTemplates[id]
     }
@@ -229,6 +233,32 @@ pub contract FlovatarNFTStakingRewards {
 
     pub fun getAllRewards(): {UInt64: {UInt32: RewardItem}} {
         return self.rewards
+    }
+
+    pub fun hasRewardItemOne(nftID: UInt64): Bool {
+        let rewards = self.getRewards(nftID: nftID)
+
+        if rewards != nil {
+            for item in rewards!.values {
+                if item.rewardItemTemplateID == 1 {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    pub fun hasRewardItemTwo(nftID: UInt64): Bool {
+        let rewards = self.getRewards(nftID: nftID)
+
+        if rewards != nil {
+            for item in rewards!.values {
+                if item.rewardItemTemplateID == 2 {
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     init() {
