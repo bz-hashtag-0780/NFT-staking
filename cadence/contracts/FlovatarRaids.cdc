@@ -13,7 +13,7 @@ pub contract FlovatarRaids {
     pub var raidCount: UInt32
     access(self) var raidRecords: {UInt32: RaidRecord}
     access(self) var playerOptIns: {Address: UInt64}
-    access(self) var playerLockStartDates: {UInt64: UFix64}
+    access(self) var playerLockStartDates: {Address: UFix64}
     access(self) var points: {UInt32: {UInt64: UInt32}}
     access(self) var exp: {UInt64: UInt32}
     access(self) var cooldowns: {Address: UFix64}
@@ -55,13 +55,12 @@ pub contract FlovatarRaids {
             }
         }
 
-        pub fun createNewGameMaster(): @GameMaster {
-            return <-create GameMaster()
-        }
     }
 
+    // Calls functions on player's behalf
     pub resource GameMaster {
 
+        // No pre-condition to allow running multiple random raids in a single transaction
         pub fun randomRaid(attacker: Address) {
             // check if attacker is valid
             if(FlovatarRaids.playerOptIns.keys.contains(attacker)) {
@@ -142,8 +141,8 @@ pub contract FlovatarRaids {
 
                             // cooldown TODO
 
-                            // start lock timer TODO
-                            //FlovatarRaids.playerLockStartDates[attacker] = getCurrentBlock().timestamp
+                            // start lock timer
+                            FlovatarRaids.playerLockStartDates[attacker] = getCurrentBlock().timestamp
 
                         }
                         
@@ -154,9 +153,9 @@ pub contract FlovatarRaids {
             
         }
 
-        pub fun targetedRaid(attacker: UInt64, defender: UInt64) {
+        pub fun targetedRaid(attacker: Address, defender: Address) {
             if(attacker != defender) {
-                if(FlovatarRaids.playerOptIns.values.contains(defender)) {
+                if(FlovatarRaids.playerOptIns.keys.contains(defender)) {
 
                     // start lock timer
                     FlovatarRaids.playerLockStartDates[attacker] = getCurrentBlock().timestamp
@@ -167,6 +166,7 @@ pub contract FlovatarRaids {
         }
 
         pub fun removePlayer(player: Address) {
+            // check lock start date
 
         }
 
