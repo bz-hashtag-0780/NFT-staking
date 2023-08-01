@@ -55,6 +55,10 @@ pub contract FlovatarRaids {
             }
         }
 
+        pub fun optOut() {
+
+        }
+
     }
 
     // Calls functions on player's behalf
@@ -68,10 +72,8 @@ pub contract FlovatarRaids {
                 if FlovatarRaids.canAttack(attacker: attacker) {
                     // fetch attacker's nft
                     if let nftID = FlovatarRaids.playerOptIns[attacker] {
-                        // pick a reward from the attackers
+                        // pick a reward from the attacker
                         var attackerRewardID: UInt32? = nil
-
-                        let rewards = FlovatarNFTStakingRewards.getRewards(nftID: nftID)
                         
                         // check rewards
                         let hasRewardOne = FlovatarNFTStakingRewards.hasRewardItemOne(nftID: nftID)
@@ -119,14 +121,14 @@ pub contract FlovatarRaids {
                                 } else if (raidResult == 1) {
                                     // attacker wins
                                     winner = nftID
-                                    // award reward to winner
+                                    // award reward to attacker
                                     FlovatarNFTStakingRewards.moveReward(fromID: defenderNftID!, toID: nftID, rewardItemID: defenderRewardID!)
                                     // award additional point to attacker
                                     FlovatarRaids.awardPoint(nftID: nftID)
                                 } else if (raidResult == 2) {
                                     // defender wins
                                     winner = defenderNftID
-                                    // award reward to winner
+                                    // award reward to defender
                                     FlovatarNFTStakingRewards.moveReward(fromID: nftID, toID: defenderNftID!, rewardItemID: attackerRewardID!)
                                     // award point to defender
                                     FlovatarRaids.awardPoint(nftID: defenderNftID!)
@@ -139,7 +141,7 @@ pub contract FlovatarRaids {
                                 FlovatarRaids.raidCount = FlovatarRaids.raidCount + 1
                                 FlovatarRaids.raidRecords[FlovatarRaids.raidCount] = RaidRecord(id: FlovatarRaids.raidCount, attacker: nftID, defender: defenderNftID!, winner: winner)
 
-                                // Add cooldown
+                                // add cooldown
                                 if FlovatarRaids.attackerCooldownTimestamps[attacker] == nil {
                                     FlovatarRaids.attackerCooldownTimestamps[attacker] = []
                                 }
@@ -149,16 +151,13 @@ pub contract FlovatarRaids {
                                 FlovatarRaids.playerLockStartDates[attacker] = getCurrentBlock().timestamp
 
                             }
-                            
                         }
-                        
                     }
                 }
-                
             }
-            
         }
 
+        // no points nor exp from this type of raid
         pub fun targetedRaid(attacker: Address, defender: Address) {
             pre {
                 attacker != defender: "Can't do targeted raid: attacker and defender is the same"
@@ -168,8 +167,74 @@ pub contract FlovatarRaids {
             }
             // fetch attacker's nft
             if let attackerNftID = FlovatarRaids.playerOptIns[attacker] {
-                // check if attacker has nft
-                if FlovatarRaids.hasNFT(address: attacker, )
+                // check if attacker has nft or is setup correctly
+                assert(FlovatarRaids.hasNFT(address: attacker, nftID: attackerNftID) ,message: "Can't do targeted raid: attacker nft is not setup correctly")
+                // fetch defender's nft
+                if let defenderNftID = FlovatarRaids.playerOptIns[defender] {
+                    // check if defender has nft or is setup correctly
+                    assert(FlovatarRaids.hasNFT(address: defender, nftID: defenderNftID) ,message: "Can't do targeted raid: defender nft is not setup correctly")
+                    
+
+                    // check attacker rewards
+                    let aHasRewardOne = FlovatarNFTStakingRewards.hasRewardItemOne(nftID: attackerNftID)
+                    let aHasRewardTwo = FlovatarNFTStakingRewards.hasRewardItemTwo(nftID: attackerNftID)
+                    assert(aHasRewardOne!=nil||aHasRewardTwo!=nil, message: "Can't do targeted raid: attacker has no valid rewards")
+
+                    // check attacker rewards
+                    let dHasRewardOne = FlovatarNFTStakingRewards.hasRewardItemOne(nftID: defenderNftID)
+                    let dHasRewardTwo = FlovatarNFTStakingRewards.hasRewardItemTwo(nftID: defenderNftID)
+                    assert(dHasRewardOne!=nil||dHasRewardTwo!=nil, message: "Can't do targeted raid: defender has no valid rewards")
+
+                    // check matching rewards
+                    assert(aHasRewardOne!=nil && dHasRewardOne!=nil ||
+                            aHasRewardTwo!=nil && dHasRewardTwo!=nil,
+                            message: "Can't do targeted raid: attacker and defender has no matching rewards")
+                    
+                    // fetch reward from attacker and defender
+                    var attackerRewardID: UInt32? = nil
+                    var defenderRewardID: UInt32? = nil
+
+                    // prioritize reward one
+                    if(aHasRewardOne!=nil && dHasRewardOne!=nil) {
+                        attackerRewardID = aHasRewardOne
+                        defenderRewardID = dHasRewardOne
+                    } else {
+                        attackerRewardID = aHasRewardTwo
+                        defenderRewardID = dHasRewardTwo
+                    }
+
+                    // run the raid algo
+                    let raidResult = FlovatarRaids.pickRaidWinner()
+                    var winner: UInt64? = nil
+                    if(raidResult == 0) {
+                        // tie, the reward gets burned
+                        FlovatarNFTStakingRewards.removeReward(nftID: attackerNftID, rewardItemID: attackerRewardID!)
+                    } else if (raidResult == 1) {
+                        // attacker wins
+                        winner = attackerNftID
+                        // award reward to attacker
+                        FlovatarNFTStakingRewards.moveReward(fromID: defenderNftID, toID: attackerNftID, rewardItemID: defenderRewardID!)
+                    } else if (raidResult == 2) {
+                        // defender wins
+                        winner = defenderNftID
+                        // award reward to defender
+                        FlovatarNFTStakingRewards.moveReward(fromID: attackerNftID, toID: defenderNftID, rewardItemID: attackerRewardID!)
+                    }
+
+                    // create record
+                    FlovatarRaids.raidCount = FlovatarRaids.raidCount + 1
+                    FlovatarRaids.raidRecords[FlovatarRaids.raidCount] = RaidRecord(id: FlovatarRaids.raidCount, attacker: attackerNftID, defender: defenderNftID, winner: winner)
+
+                    // add cooldown
+                    if FlovatarRaids.attackerCooldownTimestamps[attacker] == nil {
+                        FlovatarRaids.attackerCooldownTimestamps[attacker] = []
+                    }
+                    FlovatarRaids.attackerCooldownTimestamps[attacker]!.append(getCurrentBlock().timestamp)
+
+                    // start lock timer
+                    FlovatarRaids.playerLockStartDates[attacker] = getCurrentBlock().timestamp
+
+                }
             }
 
 
