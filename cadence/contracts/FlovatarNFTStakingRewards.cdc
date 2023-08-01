@@ -98,8 +98,8 @@ pub contract FlovatarNFTStakingRewards {
 
         pub fun giveReward(toID: UInt64) {
             // check if NFT is staking
-            if(FlovatarNFTStaking.getStakingStartDate(id: toID) != nil) {
-                let timeStaked = getCurrentBlock().timestamp - FlovatarNFTStaking.getStakingStartDate(id: toID)!
+            if let adjustedStakingDate = FlovatarNFTStaking.getAdjustedStakingDate(id: toID) {
+                let timeStaked = getCurrentBlock().timestamp - adjustedStakingDate
 
                 // check if eligible to receive reward
                 if(timeStaked >= FlovatarNFTStakingRewards.rewardPerSecond) {
