@@ -94,7 +94,7 @@ pub contract FlovatarRaids {
                                 randomDefender = FlovatarRaids.pickRandomPlayer()
                                 defenderNftID = FlovatarRaids.playerOptIns[randomDefender!]
                                 
-                                if(defenderNftID! != nil) {
+                                if(defenderNftID != nil) {
                                     // make sure defender is not attacker
                                     if(randomDefender! != attacker) {
                                         // check if defender has valid matching reward
@@ -121,7 +121,7 @@ pub contract FlovatarRaids {
                                     winner = nftID
                                     // award reward to winner
                                     FlovatarNFTStakingRewards.moveReward(fromID: defenderNftID!, toID: nftID, rewardItemID: defenderRewardID!)
-                                    // award point to attacker
+                                    // award additional point to attacker
                                     FlovatarRaids.awardPoint(nftID: nftID)
                                 } else if (raidResult == 2) {
                                     // defender wins
@@ -160,13 +160,18 @@ pub contract FlovatarRaids {
         }
 
         pub fun targetedRaid(attacker: Address, defender: Address) {
-            if(attacker != defender) {
-                if(FlovatarRaids.playerOptIns.keys.contains(defender)) {
-
-                    // start lock timer
-                    FlovatarRaids.playerLockStartDates[attacker] = getCurrentBlock().timestamp
-                }
+            pre {
+                attacker != defender: "Can't do targeted raid: attacker and defender is the same"
+                FlovatarRaids.playerOptIns.keys.contains(defender): "Can't do targeted raid: defender has not opted in"
+                FlovatarRaids.playerOptIns.keys.contains(attacker): "Can't do targeted raid: attacker has not opted in"
+                FlovatarRaids.canAttack(attacker: attacker): "Can't do targeted raid: attacker is on cooldown"
             }
+            // fetch attacker's nft
+            if let attackerNftID = FlovatarRaids.playerOptIns[attacker] {
+                // check if attacker has nft
+                if FlovatarRaids.hasNFT(address: attacker, )
+            }
+
 
             
         }
@@ -207,6 +212,20 @@ pub contract FlovatarRaids {
         } else {
             FlovatarRaids.exp[nftID] = 1
         }
+    }
+
+    pub fun hasNFT(address: Address, nftID: UInt64): Bool {
+        let collectionRef = getAccount(address).getCapability(FlovatarNFTStaking.CollectionPublicPath)
+                                                            .borrow<&FlovatarNFTStaking.Collection{FlovatarNFTStaking.NFTStakingCollectionPublic}>()
+
+        if(collectionRef != nil) {
+            let IDs = collectionRef!.getIDs()
+            if(IDs.contains(nftID)) {
+                return true
+            }
+        }
+
+        return false
     }
 
     pub fun canAttack(attacker: Address): Bool {
