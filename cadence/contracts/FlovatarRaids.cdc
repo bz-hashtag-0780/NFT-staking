@@ -8,6 +8,7 @@ pub contract FlovatarRaids {
     pub event NewSeasonStarted(newCurrentSeason: UInt32)
 
     pub let GameMasterStoragePath: StoragePath
+    pub let GameMasterPrivatePath: PrivatePath
 
     pub var currentSeason: UInt32
     pub var raidCount: UInt32
@@ -56,7 +57,13 @@ pub contract FlovatarRaids {
         }
 
         pub fun optOut() {
-
+            let currentTimestamp = getCurrentBlock().timestamp
+            if let playerLockStartDate = FlovatarRaids.playerLockStartDates[self.owner!.address] {
+                // check if player has not raided in the last 3 hours
+                if(currentTimestamp - playerLockStartDate > 10800.00) {
+                    FlovatarRaids.playerOptIns.remove(key: self.owner!.address)
+                }
+            }
         }
 
     }
@@ -157,7 +164,7 @@ pub contract FlovatarRaids {
             }
         }
 
-        // no points nor exp from this type of raid
+        // no points nor exp is awarded from this type of raid
         pub fun targetedRaid(attacker: Address, defender: Address) {
             pre {
                 attacker != defender: "Can't do targeted raid: attacker and defender is the same"
@@ -242,8 +249,15 @@ pub contract FlovatarRaids {
         }
 
         pub fun removePlayer(player: Address) {
-            // check lock start date
-
+            // no pre-conditions to allow for removal of multiple players
+            let currentTimestamp = getCurrentBlock().timestamp
+            if let playerLockStartDate = FlovatarRaids.playerLockStartDates[player] {
+                // check if player has not raided in the last 3 hours
+                if(currentTimestamp - playerLockStartDate > 10800.00) {
+                    FlovatarRaids.playerOptIns.remove(key: player)
+                }
+            }
+        
         }
 
         pub fun createNewGameMaster(): @GameMaster {
@@ -264,10 +278,10 @@ pub contract FlovatarRaids {
         if(points != nil) {
             var currentSeasonPoints = points!
             if(currentSeasonPoints[nftID] != nil) {
-            currentSeasonPoints[nftID] = currentSeasonPoints[nftID]! + 1
-        } else {
-            currentSeasonPoints[nftID] = 1
-        }
+                currentSeasonPoints[nftID] = currentSeasonPoints[nftID]! + 1
+            } else {
+                currentSeasonPoints[nftID] = 1
+            }
         }
     }
 
@@ -366,6 +380,7 @@ pub contract FlovatarRaids {
         self.attackerCooldownTimestamps = {}
 
         self.GameMasterStoragePath = /storage/FlovatarRaidsGameMaster
+        self.GameMasterPrivatePath = /private/FlovatarRaidsGameMaster
 
         emit ContractInitialized()
     }
