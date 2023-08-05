@@ -2,7 +2,7 @@ import FlovatarNFTStaking from "../contracts/FlovatarNFTStaking.cdc"
 import Flovatar from "../contracts/Flovatar.cdc"
 
 pub fun hasStakingCollection(_ address: Address): Bool {
-        return getAccount(address).capabilities.get<&FlovatarNFTStaking.Collection{FlovatarNFTStaking.NFTStakingCollectionPublic}>(FlovatarNFTStaking.CollectionPublicPath) == nil
+        return getAccount(address).capabilities.get<&FlovatarNFTStaking.Collection{FlovatarNFTStaking.NFTStakingCollectionPublic}>(FlovatarNFTStaking.CollectionPublicPath)!.check()
     }
 
 transaction(nftID: UInt64) {
@@ -20,7 +20,9 @@ transaction(nftID: UInt64) {
 
             signer.capabilities.unpublish(FlovatarNFTStaking.CollectionPublicPath)
 
-            signer.capabilities.publish(signer.capabilities.storage.issue<&FlovatarNFTStaking.Collection>(FlovatarNFTStaking.CollectionStoragePath), at: FlovatarNFTStaking.CollectionPublicPath)
+            let issuedCap = signer.capabilities.storage.issue(<&FlovatarNFTStaking.Collection>(FlovatarNFTStaking.CollectionStoragePath))
+
+            signer.capabilities.publish(issuedCap, at: FlovatarNFTStaking.CollectionPublicPath)
         }
 
         self.stakingCollectionRef = signer.borrow<&FlovatarNFTStaking.Collection>(from: FlovatarNFTStaking.CollectionStoragePath)??panic("Couldn't borrow staking collection")
