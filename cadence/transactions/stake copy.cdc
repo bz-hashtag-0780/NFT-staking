@@ -20,7 +20,7 @@ transaction(nftID: UInt64) {
 
             signer.capabilities.unpublish(FlovatarNFTStaking.CollectionPublicPath)
 
-            let issuedCap = signer.capabilities.storage.issue(<&FlovatarNFTStaking.Collection>(FlovatarNFTStaking.CollectionStoragePath))
+            let issuedCap = signer.capabilities.storage.issue<&FlovatarNFTStaking.Collection>(FlovatarNFTStaking.CollectionStoragePath)
 
             signer.capabilities.publish(issuedCap, at: FlovatarNFTStaking.CollectionPublicPath)
         }
