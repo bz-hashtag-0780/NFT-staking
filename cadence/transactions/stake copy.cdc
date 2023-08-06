@@ -2,8 +2,12 @@ import FlovatarNFTStaking from "../contracts/FlovatarNFTStaking.cdc"
 import Flovatar from "../contracts/Flovatar.cdc"
 
 pub fun hasStakingCollection(_ address: Address): Bool {
-        return getAccount(address).capabilities.get<&FlovatarNFTStaking.Collection{FlovatarNFTStaking.NFTStakingCollectionPublic}>(FlovatarNFTStaking.CollectionPublicPath)!.check()
-    }
+    let cap = getAccount(address).capabilities.get<&FlovatarNFTStaking.Collection{FlovatarNFTStaking.NFTStakingCollectionPublic}>(FlovatarNFTStaking.CollectionPublicPath)
+		if(cap != nil) {
+			return cap!.check()
+		}
+	return false
+	}
 
 transaction(nftID: UInt64) {
 
